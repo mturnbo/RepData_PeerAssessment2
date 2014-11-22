@@ -1,0 +1,15 @@
+---
+title: "NOAA Storm Data Analysis"
+author: "Marcus Turnbo"
+date: "November 22, 2014"
+output: html_document
+---
+
+## Loading and preprocessing the data
+
+```{r, echo=TRUE}
+library(data.table)
+
+stormData <- (read.csv('./data/repdata-data-StormData.csv', header=TRUE))
+
+```
