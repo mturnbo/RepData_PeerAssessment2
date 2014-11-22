@@ -82,6 +82,6 @@ eventImpactDamage <- subset(ddply(stormDataUS, c('EVTYPE'), summarise,
   avg.Property = mean(PROPDMG),
   total.crop = sum(CROPDMG),
   avg.crop = mean(CROPDMG)
-), total.property > 0 || total.crop > 0)
+), total.property > 0 | total.crop > 0)
 summary(eventImpactDamage)
 ```
