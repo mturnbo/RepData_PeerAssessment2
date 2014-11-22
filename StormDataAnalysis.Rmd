@@ -12,42 +12,46 @@ analysis has been performed to determine events with the greatest impact in the 
 
 ### Data Processing 
 
-```{r, echo=TRUE, warning=FALSE}
+```{r, echo=TRUE, warning=FALSE, cache=TRUE}
 library(data.table)
 library(plyr)
 library(lubridate)
 
 # read storm data
-# stormData <- (read.csv('./data/repdata-data-StormData.csv', header=TRUE))
-stormData <- readRDS('./data/StormData.rds')
+stormData <- (read.csv('./data/repdata-data-StormData.csv', header=TRUE))
 # subset storm data in United States based on STATE value
 stormDataUS <- subset(stormData, STATE %in% state.abb)
 
 # create event year column
-# stormData$BGN_DATE_DATE <- as.POSIXct(stormData$BGN_DATE, format = "%m/%d/%Y %h:%M:%S")
 stormDataUS$EVENT_YEAR <- year(parse_date_time(stormDataUS$BGN_DATE, "%m/%d/%y %H%M%S"))
 
 # create summary table
 eventSummary <- data.table(ddply(stormDataUS, c('EVENT_YEAR'), summarise, 
-  events = length(REFNUM),
-  min.fatalities = min(FATALITIES),
-  max.fatalities = max(FATALITIES),
-  avg.fatalities = mean(FATALITIES),
-  min.injuries = min(INJURIES),
-  max.injuries = max(INJURIES),
-  avg.injuries = mean(INJURIES),
-  min.property.damage = min(PROPDMG),
-  max.property.damage = max(PROPDMG),
-  avg.property.damage = mean(PROPDMG),
-  min.crop.damage = min(CROPDMG),
-  max.crop.damage = max(CROPDMG),
-  avg.crop.damage = mean(CROPDMG)
+  num.events = length(REFNUM),
+  total.fatality = sum(FATALITIES),
+  min.fatality = min(FATALITIES),
+  max.fatality = max(FATALITIES),
+  avg.fatality = mean(FATALITIES),
+  total.injury = sum(INJURIES),
+  min.injury = min(INJURIES),
+  max.injury = max(INJURIES),
+  avg.injury = mean(INJURIES),
+  total.propertydamage = sum(PROPDMG),
+  min.propertydamage = min(PROPDMG),
+  max.propertydamage = max(PROPDMG),
+  avg.propertydamage = mean(PROPDMG),
+  total.cropdamage = sum(PROPDMG),
+  min.cropdamage = min(CROPDMG),
+  max.cropdamage = max(CROPDMG),
+  avg.cropdamage = mean(CROPDMG)
 ))
+setnames(eventSummary, names(eventSummary)[1], c('event.year'))
 
-earliestFatalityYear <- min(eventSummary[which(eventSummary$max.fatalities > 0), EVENT_YEAR])
-earliestInjuryYear <- min(eventSummary[which(eventSummary$max.injuries > 0), EVENT_YEAR])
-earliestPropertyDamageYear <- min(eventSummary[which(eventSummary$max.property.damage > 0), EVENT_YEAR])
-earliestCropDamageYear <- min(eventSummary[which(eventSummary$max.crop.damage > 0), EVENT_YEAR])
+# find earliest years where data exists
+earliestFatalityYear <- min(eventSummary[which(eventSummary$max.fatality > 0), EVENT_YEAR])
+earliestInjuryYear <- min(eventSummary[which(eventSummary$max.injury > 0), EVENT_YEAR])
+earliestPropertyDamageYear <- min(eventSummary[which(eventSummary$max.propertydamage > 0), EVENT_YEAR])
+earliestCropDamageYear <- min(eventSummary[which(eventSummary$max.cropdamage > 0), EVENT_YEAR])
 ```
 
 `r nrow(stormData)` observations were found in the downloaded data.
@@ -59,24 +63,25 @@ earliestCropDamageYear <- min(eventSummary[which(eventSummary$max.crop.damage > 
 
 ### Results
 
-
-
-
-## Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+#### The most harmful events across the United States with respect to population health:
 
 ```{r, echo=TRUE}
-eventImpactPopulationHealth <- ddply(stormDataUS, c('EVTYPE'), summarise, 
-  avgFatality = mean(FATALITIES),
+eventImpactPopulationHealth <- subset(ddply(stormDataUS, c('EVTYPE'), summarise, 
+  total.fatality = sum(FATALITIES),
+  avg.fatality = mean(FATALITIES),
+  total.injury = sum(INJURIES),
   avgInjury = mean(INJURIES)
-)
+), total.fatality > 0 | total.injury > 0)
 summary(eventImpactPopulationHealth)
 ```
 
-## Across the United States, which types of events have the greatest economic consequences?
+#### Events across the United States with the greatest economic consequences:
 ```{r, echo=TRUE}
-eventImpactDamage <- ddply(stormDataUS, c('EVTYPE'), summarise, 
-  avgProperty = mean(PROPDMG),
-  avgCrop = mean(CROPDMG)
-)
+eventImpactDamage <- subset(ddply(stormDataUS, c('EVTYPE'), summarise, 
+  total.property = sum(PROPDMG),
+  avg.Property = mean(PROPDMG),
+  total.crop = sum(CROPDMG),
+  avg.crop = mean(CROPDMG)
+), total.property > 0 || total.crop > 0)
 summary(eventImpactDamage)
 ```
