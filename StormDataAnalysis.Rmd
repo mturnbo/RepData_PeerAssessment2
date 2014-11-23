@@ -12,7 +12,13 @@ analysis has been performed to determine events with the greatest impact in the 
 
 ### Data Processing 
 
-```{r, echo=TRUE, warning=FALSE, cache=TRUE}
+A CSV file downloaded from the NOAA website is loaded into a dataframe.  A subset of this data with STATE values
+only in the state.abb vector is created to ensure we are working with events only in the United States.  The event
+year is extracted from the BGN_DATE and used to create a summary table with total, minimum, maximum, and average
+values for fatalities, injuries, property damage, and crop damage.  To check for completeness of data, the minimum
+year that data exists for these metrics is calculated.
+
+```{r, echo=TRUE, warning=FALSE}
 library(data.table)
 library(plyr)
 library(lubridate)
@@ -48,10 +54,10 @@ eventSummary <- data.table(ddply(stormDataUS, c('EVENT_YEAR'), summarise,
 setnames(eventSummary, names(eventSummary)[1], c('event.year'))
 
 # find earliest years where data exists
-earliestFatalityYear <- min(eventSummary[which(eventSummary$max.fatality > 0), EVENT_YEAR])
-earliestInjuryYear <- min(eventSummary[which(eventSummary$max.injury > 0), EVENT_YEAR])
-earliestPropertyDamageYear <- min(eventSummary[which(eventSummary$max.propertydamage > 0), EVENT_YEAR])
-earliestCropDamageYear <- min(eventSummary[which(eventSummary$max.cropdamage > 0), EVENT_YEAR])
+earliestFatalityYear <- min(eventSummary[which(eventSummary$max.fatality > 0), event.year])
+earliestInjuryYear <- min(eventSummary[which(eventSummary$max.injury > 0), event.year])
+earliestPropertyDamageYear <- min(eventSummary[which(eventSummary$max.propertydamage > 0), event.year])
+earliestCropDamageYear <- min(eventSummary[which(eventSummary$max.cropdamage > 0), event.year])
 ```
 
 `r nrow(stormData)` observations were found in the downloaded data.
@@ -65,23 +71,41 @@ earliestCropDamageYear <- min(eventSummary[which(eventSummary$max.cropdamage > 0
 
 #### The most harmful events across the United States with respect to population health:
 
+The storm data for United States is aggregated based on event type to determine which has the most impact on population health.  Only data with values for fatality or injury are used.
+
 ```{r, echo=TRUE}
 eventImpactPopulationHealth <- subset(ddply(stormDataUS, c('EVTYPE'), summarise, 
   total.fatality = sum(FATALITIES),
   avg.fatality = mean(FATALITIES),
   total.injury = sum(INJURIES),
-  avgInjury = mean(INJURIES)
+  avg.injury = mean(INJURIES)
 ), total.fatality > 0 | total.injury > 0)
-summary(eventImpactPopulationHealth)
-```
+rownames(eventImpactPopulationHealth) <- NULL
+setnames(eventImpactPopulationHealth, names(eventImpactPopulationHealth)[1], c('event.type'))
+
+eventMaxImpactPopulationHealth <- eventImpactPopulationHealth[ 
+  eventImpactPopulationHealth$total.fatality == max(eventImpactPopulationHealth$total.fatality) |
+  eventImpactPopulationHealth$avg.fatality == max(eventImpactPopulationHealth$avg.fatality) |
+  eventImpactPopulationHealth$total.injury == max(eventImpactPopulationHealth$total.injury) |
+  eventImpactPopulationHealth$avg.injury == max(eventImpactPopulationHealth$avg.injury),]
 
 #### Events across the United States with the greatest economic consequences:
+
+The storm data for United States is aggregated based on event type to determine which has the most impact on property and crops.  Only data with values for property damage or crop damage are used.
+
 ```{r, echo=TRUE}
 eventImpactDamage <- subset(ddply(stormDataUS, c('EVTYPE'), summarise, 
   total.property = sum(PROPDMG),
-  avg.Property = mean(PROPDMG),
+  avg.property = mean(PROPDMG),
   total.crop = sum(CROPDMG),
   avg.crop = mean(CROPDMG)
 ), total.property > 0 | total.crop > 0)
-summary(eventImpactDamage)
+rownames(eventImpactDamage) <- NULL
+setnames(eventImpactDamage, names(eventImpactDamage)[1], c('event.type'))
+
+eventMaxImpactDamage <- eventImpactDamage[ 
+  eventImpactDamage$total.fatality == max(eventImpactDamage$total.fatality) |
+  eventImpactDamage$avg.fatality == max(eventImpactDamage$avg.fatality) |
+  eventImpactDamage$total.injury == max(eventImpactDamage$total.injury) |
+  eventImpactDamage$avg.injury == max(eventImpactDamage$avg.injury),]
 ```
