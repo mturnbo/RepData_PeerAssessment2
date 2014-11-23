@@ -18,7 +18,7 @@ year is extracted from the BGN_DATE and used to create a summary table with tota
 values for fatalities, injuries, property damage, and crop damage.  To check for completeness of data, the minimum
 year that data exists for these metrics is calculated.
 
-```{r, echo=TRUE, warning=FALSE}
+```{r, echo=TRUE, warning=FALSE, cache=TRUE}
 library(data.table)
 library(plyr)
 library(lubridate)
@@ -61,7 +61,7 @@ earliestCropDamageYear <- min(eventSummary[which(eventSummary$max.cropdamage > 0
 ```
 
 `r nrow(stormData)` observations were found in the downloaded data.
-- The downloaded data includes events from `r min(eventSummary$EVENT_YEAR)` through `r max(eventSummary$EVENT_YEAR)`. 
+- The downloaded data includes events from `r min(eventSummary$event.year)` through `r max(eventSummary$event.year)`. 
 - The earliest fatality data is in `r earliestFatalityYear`
 - The earliest injury data is in `r earliestInjuryYear`
 - The earliest property damage data is in `r earliestPropertyDamageYear`
@@ -104,8 +104,28 @@ rownames(eventImpactDamage) <- NULL
 setnames(eventImpactDamage, names(eventImpactDamage)[1], c('event.type'))
 
 eventMaxImpactDamage <- eventImpactDamage[ 
-  eventImpactDamage$total.fatality == max(eventImpactDamage$total.fatality) |
-  eventImpactDamage$avg.fatality == max(eventImpactDamage$avg.fatality) |
-  eventImpactDamage$total.injury == max(eventImpactDamage$total.injury) |
-  eventImpactDamage$avg.injury == max(eventImpactDamage$avg.injury),]
+  eventImpactDamage$total.property == max(eventImpactDamage$total.property) |
+  eventImpactDamage$avg.property == max(eventImpactDamage$avg.property) |
+  eventImpactDamage$total.crop == max(eventImpactDamage$total.crop) |
+  eventImpactDamage$avg.crop == max(eventImpactDamage$avg.crop),]
+
+library(reshape2)
+meltedImpactPopulationHealth <- melt(eventMaxImpactPopulationHealth, id=c('event.type'), measure.vars=c('total.fatality','avg.fatality','total.injury','avg.injury'))
+meltedImpactDamage <- melt(eventMaxImpactDamage, id=c('event.type'), measure.vars=c('total.property','avg.property','total.crop','avg.crop'))
+
+library(ggplot2)
+fig1 <- ggplot(data=meltedImpactPopulationHealth, aes(x=variable, y=value, fill=event.type))
+fig1 <- fig1 + geom_bar(stat="identity", position=position_dodge())
+fig1 <- fig1 + labs(title="U.S. Storm Population Health Impact") + xlab("Event Type") + ylab("Impact ($)")
+fig1 <- fig1 + scale_y_log10()
+fig1
+
+fig2 <-ggplot(data=meltedImpactDamage, aes(x=variable, y=value, fill=event.type)) 
+fig2 <- fig2 + geom_bar(stat="identity", position=position_dodge())
+fig2 <- fig2 + labs(title="U.S. Storm Damage Impact") + xlab("Event Type") + ylab("Impact ($)")
+fig2 <- fig2 + scale_y_log10()
+fig2
 ```
+
+Based on the summary data, Tornados have the greatest impact on population health and property.  Hail has the most impact on crops.
+
