@@ -74,6 +74,8 @@ earliestCropDamageYear <- min(eventSummary[which(eventSummary$max.cropdamage > 0
 The storm data for United States is aggregated based on event type to determine which has the most impact on population health.  Only data with values for fatality or injury are used.
 
 ```{r, echo=TRUE}
+library(data.table)
+library(plyr)
 eventImpactPopulationHealth <- subset(ddply(stormDataUS, c('EVTYPE'), summarise, 
   total.fatality = sum(FATALITIES),
   avg.fatality = mean(FATALITIES),
@@ -88,12 +90,15 @@ eventMaxImpactPopulationHealth <- eventImpactPopulationHealth[
   eventImpactPopulationHealth$avg.fatality == max(eventImpactPopulationHealth$avg.fatality) |
   eventImpactPopulationHealth$total.injury == max(eventImpactPopulationHealth$total.injury) |
   eventImpactPopulationHealth$avg.injury == max(eventImpactPopulationHealth$avg.injury),]
+```
 
 #### Events across the United States with the greatest economic consequences:
 
 The storm data for United States is aggregated based on event type to determine which has the most impact on property and crops.  Only data with values for property damage or crop damage are used.
 
 ```{r, echo=TRUE}
+library(data.table)
+library(plyr)
 eventImpactDamage <- subset(ddply(stormDataUS, c('EVTYPE'), summarise, 
   total.property = sum(PROPDMG),
   avg.property = mean(PROPDMG),
