@@ -15,7 +15,7 @@ analysis has been performed to determine events with the greatest impact in the 
 #### Data Scrubbing
 
 A CSV file downloaded from the NOAA website is loaded into a dataframe.  A copy of this data frame containing only
-the relevant fields is created.
+the relevant fields is created.  This dataframe will be used to scrub the downloaded data.
 
 ```{r, echo=TRUE, warning=FALSE, cache=TRUE}
 # read storm data
@@ -26,14 +26,14 @@ selectFields <- c('BGN_DATE','STATE','EVTYPE','FATALITIES','INJURIES','PROPDMG',
 cleanStormData <- stormData[,(names(stormData) %in% selectFields)]
 ```
 
-`r nrow(stormData)` observations were found in the downloaded data. We are only concerned with events in the United States.  We will use the state.abb vector to filter the data.
+`r nrow(stormData)` observations were found in the downloaded data. We are only concerned with events in the United States.  We will use the **state.abb** vector to filter the data.
 
 ```{r, echo=TRUE, warning=FALSE}
 # subset storm data in United States based on STATE value
 cleanStormData <- subset(cleanStormData, STATE %in% state.abb)
 ```
 
-Parse the event year and add field to clean dataset.
+Parse the year from the event date field and add new field to dataset.  Use this to determine the range for which data is present.
 
 ```{r, echo=TRUE, warning=FALSE}
 # create event year column
@@ -68,20 +68,20 @@ propertyExponents = unique(cleanStormData$PROPDMGEXP)
 cropExponents = unique(cleanStormData$CROPDMGEXP)
 ```
 
-- Property Damage Exponents: `r propertyExponents`
-- Crop Damage Exponents: `r cropExponents`
+  Property Damage Exponents: `r propertyExponents`
+  Crop Damage Exponents: `r cropExponents`
 
-I will assume the following exponent definitions and filter the data to only use values containing them:
-- K = thousands
-- M = millions
-- B = billions
+I will assume the following exponent definitions and filter the data to only use values containing them:  
+  K = thousands  
+  M = millions  
+  B = billions  
  
 ```{r, echo=TRUE, warning=FALSE}
 # filter storm data based on exponents
 cleanStormData = subset(cleanStormData, PROPDMGEXP %in% c('K','M','B','') & CROPDMGEXP %in% c('K','M','B',''))
 ```
 
-Add fields with the propert and crop damage values multiplied by the exponents.
+Add fields with the property and crop damage values multiplied by the exponents.  Create a function to apply the exponent to the values present.
 
 ```{r, echo=TRUE, warning=FALSE}
 multiplyExponent <- function(x, exp) {
@@ -91,8 +91,7 @@ multiplyExponent <- function(x, exp) {
     switch(exp,
       'K' = x * 1000,
       'M' = x * 1000000,
-      'B' = x * 1000000000,
-      ' ' = x
+      'B' = x * 1000000000
     )
   }
 }
@@ -106,20 +105,30 @@ cleanStormData$Total.Damage = cleanStormData$Property.Damage + cleanStormData$Cr
 
 #### Population Health
 
-The average value per event is to be used as the factor for determining the weather events with the most impact.
+The average value per event is to be used as the factor for determining the weather events with the most impact.  For impace on population health
 
 ```{r, echo=TRUE, warning=FALSE}
 library(data.table)
 meanHealthImpact = data.table(aggregate(cbind(FATALITIES, INJURIES) ~ EVTYPE, data=cleanStormData, FUN=mean))
-topHealthImpact =  head(meanHealthImpact[order(-meanHealthImpact$FATALITIES , -meanHealthImpact$INJURIES)], 5) 
-setnames(topHealthImpact, c("EVTYPE", "FATALITIES", "INJURIES"), c("Event.Type", "Fatalities", "Injuries"))
+topFatalities =  head(meanHealthImpact[order(-meanHealthImpact$FATALITIES)], 5) 
+setnames(topFatalities, c("EVTYPE", "FATALITIES", "INJURIES"), c("Event.Type", "Fatalities", "Injuries"))
+topFatalities
+topInjuries =  head(meanHealthImpact[order(-meanHealthImpact$INJURIES)], 5) 
+setnames(topInjuries, c("EVTYPE", "FATALITIES", "INJURIES"), c("Event.Type", "Fatalities", "Injuries"))
+topInjuries
 
 library(ggplot2)
-fig1 <- ggplot(topHealthImpact, aes(x=Event.Type, y=Fatalities))
+fig1 <- ggplot(topFatalities, aes(x=Event.Type, y=Fatalities))
 fig1 <- fig1 + geom_bar(stat="identity")
 fig1 <- fig1 + coord_flip()
 fig1 <- fig1 + labs(title="Top 5 Deadliest Weather Events") + xlab("Event Type") + ylab("Average Fatalities")
 fig1
+
+fig2 <- ggplot(topInjuries, aes(x=Event.Type, y=Injuries))
+fig2 <- fig2 + geom_bar(stat="identity")
+fig2 <- fig2 + coord_flip()
+fig2 <- fig2 + labs(title="Top 5 Injury Causing Events") + xlab("Event Type") + ylab("Average Fatalities")
+fig2
 ```
 
 #### Economic Impact
@@ -132,12 +141,14 @@ topEconomicImpact =  head(meanEconomicImpact[order(-meanEconomicImpact$Property.
 setnames(topEconomicImpact, c("EVTYPE"), c("Event.Type"))
 
 library(ggplot2)
-fig2 <- ggplot(topEconomicImpact, aes(x=Event.Type, y=Total.Damage))
-fig2 <- fig2 + geom_bar(stat="identity", position=position_dodge())
-fig2 <- fig2 + coord_flip()
-fig2 <- fig2 + labs(title="Top 5 Costliest Weather Events") + xlab("Event Type") + ylab("Average Impact")
-fig2
+fig3 <- ggplot(topEconomicImpact, aes(x=Event.Type, y=Total.Damage))
+fig3 <- fig3 + geom_bar(stat="identity", position=position_dodge())
+fig3 <- fig3 + coord_flip()
+fig3 <- fig3 + labs(title="Top 5 Costliest Weather Events") + xlab("Event Type") + ylab("Average Impact")
+fig3
 ```
 
 Based on the summary data, we are able to make the following conclusions based on averages per event type:
-- **Tornados** cause the most fatalities and economic impact.
+  **Tornadoes** are the deadliest storm events.  
+  **Heat Waves** caused the most injuries.
+  **Tornados** have the greatest economic impact.
